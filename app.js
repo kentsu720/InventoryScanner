@@ -392,14 +392,22 @@ function configureAndStartScanner(cameraId) {
             activeCameraDisplay.style.display = 'flex';
             
             // Check if active camera is back camera
-            const isBackCamera = activeCamera.label.toLowerCase().includes('back') || 
-                                 activeCamera.label.toLowerCase().includes('environment') || 
-                                 activeCamera.label.toLowerCase().includes('後置') || 
-                                 activeCamera.label.toLowerCase().includes('後鏡頭') || 
-                                 activeCamera.label.toLowerCase().includes('main') ||
-                                 activeCamera.label.toLowerCase().includes('camera 0');
+            const activeLabel = (activeCamera.label || "").toLowerCase();
+            const isBackCamera = activeLabel.includes('back') || 
+                                 activeLabel.includes('environment') || 
+                                 activeLabel.includes('後置') || 
+                                 activeLabel.includes('後鏡頭') || 
+                                 activeLabel.includes('main') ||
+                                 activeLabel.includes('camera 0') ||
+                                 activeLabel.includes('camera2 0');
             
-            const torchSupported = html5QrCode.isTorchSupported();
+            let torchSupported = false;
+            try {
+                const capabilities = html5QrCode.getRunningTrackCapabilities();
+                torchSupported = !!(capabilities && capabilities.torch);
+            } catch (e) {
+                console.warn("Unable to check torch capability", e);
+            }
             
             // Enable flashlight ONLY when it's back camera and supported by hardware
             if (isBackCamera && torchSupported) {
@@ -695,9 +703,94 @@ function showInsecureOriginWarning() {
     }
 }
 
+// ==========================================================================
+// PWA Install Promotion Logic for Chrome & Safari
+// ==========================================================================
+let deferredPrompt = null;
+
+function initPwaInstallPrompt() {
+    const installBanner = document.getElementById('pwa-install-banner');
+    const btnInstall = document.getElementById('btn-install-pwa');
+    const btnClose = document.getElementById('btn-close-banner');
+    const installMessage = document.getElementById('install-message');
+    const installIcon = installBanner ? installBanner.querySelector('.install-icon') : null;
+
+    if (!installBanner) return;
+
+    // Check if already running in standalone mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) {
+        return; // Don't show banner if already installed
+    }
+
+    // Detect iOS Device
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    // Detect Safari Browser specifically on iOS (excluding Chrome/CriOS)
+    const isSafari = isIOS && /Safari/i.test(navigator.userAgent) && !/CriOS/i.test(navigator.userAgent) && !/FxiOS/i.test(navigator.userAgent);
+
+    // If iOS Safari
+    if (isSafari) {
+        // Change text to show manual instructions for Safari
+        installMessage.innerHTML = '點擊 Safari 底部的 <i class="fa-solid fa-share-from-square"></i> 分享按鈕，再選擇「<b>加入主畫面</b>」即可安裝為 App！';
+        if (btnInstall) btnInstall.style.display = 'none'; // iOS Safari doesn't support programmatic install
+        if (installIcon) {
+            installIcon.className = 'fa-solid fa-arrow-down install-icon';
+            installIcon.style.animation = 'bounce 2s infinite';
+            installIcon.style.color = '#3b82f6';
+        }
+        
+        // Show banner if not dismissed previously in this session
+        if (localStorage.getItem('pwa-banner-dismissed') !== 'true') {
+            installBanner.classList.add('animate-slide-down');
+            installBanner.style.display = 'flex';
+        }
+    }
+
+    // Listen for Chrome / Android beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent default browser banner
+        e.preventDefault();
+        // Stash the event
+        deferredPrompt = e;
+        
+        // Show our custom banner if not dismissed previously
+        if (localStorage.getItem('pwa-banner-dismissed') !== 'true') {
+            installBanner.classList.add('animate-slide-down');
+            installBanner.style.display = 'flex';
+        }
+    });
+
+    if (btnInstall) {
+        btnInstall.addEventListener('click', () => {
+            if (!deferredPrompt) return;
+            // Show prompt
+            deferredPrompt.prompt();
+            // Wait for user choice
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the PWA install prompt');
+                } else {
+                    console.log('User dismissed the PWA install prompt');
+                }
+                deferredPrompt = null;
+                installBanner.style.display = 'none';
+            });
+        });
+    }
+
+    if (btnClose) {
+        btnClose.addEventListener('click', () => {
+            installBanner.style.display = 'none';
+            // Remember choice in localStorage to prevent annoying user
+            localStorage.setItem('pwa-banner-dismissed', 'true');
+        });
+    }
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     loadInventory();
+    initPwaInstallPrompt(); // Check and prompt for PWA install
     
     // Check if camera API is supported/allowed by the browser
     const isCameraSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);

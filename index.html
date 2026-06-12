@@ -20,6 +20,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" class="install-banner" style="display: none;">
+        <div class="banner-content">
+            <i class="fa-solid fa-cloud-arrow-down install-icon"></i>
+            <span id="install-message">安裝為手機 App，享極速離線盤點！</span>
+            <button id="btn-install-pwa" class="banner-btn">安裝</button>
+        </div>
+        <button id="btn-close-banner" class="banner-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
