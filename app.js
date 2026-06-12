@@ -584,15 +584,12 @@ btnSortList.addEventListener('click', () => {
 // ==========================================================================
 // Export Inventory to Text / CSV File
 // ==========================================================================
-function getFormattedDate() {
+function getExportDate() {
     const d = new Date();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+    return `${year}${month}${day}`;
 }
 
 // 1. Export as Human-readable TXT (ONLY BARCODES, ONE PER LINE)
@@ -602,12 +599,19 @@ btnExportTxt.addEventListener('click', () => {
         return;
     }
     
+    const owner = prompt("請輸入 Owner (設備擁有者名稱)：");
+    if (owner === null) {
+        return; // User clicked cancel
+    }
+    const trimmedOwner = owner.trim() || "Owner";
+    
     let content = "";
     inventory.forEach((item) => {
         content += `${item.barcode}\r\n`;
     });
     
-    downloadFile(content, `device_export_${getFormattedDate()}.txt`, 'text/plain;charset=utf-8');
+    const fileName = `${trimmedOwner} x ${inventory.length}_${getExportDate()}.txt`;
+    downloadFile(content, fileName, 'text/plain;charset=utf-8');
 });
 
 // 2. Export as CSV (Compatible with Excel, uses UTF-8 with BOM, ONLY BARCODES)
@@ -617,6 +621,12 @@ btnExportCsv.addEventListener('click', () => {
         return;
     }
     
+    const owner = prompt("請輸入 Owner (設備擁有者名稱)：");
+    if (owner === null) {
+        return; // User clicked cancel
+    }
+    const trimmedOwner = owner.trim() || "Owner";
+    
     // CSV header and barcodes
     let csvContent = "設備序號\r\n";
     
@@ -625,11 +635,12 @@ btnExportCsv.addEventListener('click', () => {
         csvContent += `${barcode}\r\n`;
     });
     
+    const fileName = `${trimmedOwner} x ${inventory.length}_${getExportDate()}.csv`;
     const blobContent = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blobContent);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `device_export_${getFormattedDate()}.csv`);
+    link.setAttribute("download", fileName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

@@ -1,7 +1,7 @@
 {
-  "name": "行動設備序號掃描系統",
-  "short_name": "序號掃描",
-  "description": "極簡設備序號條碼掃描與登錄系統",
+  "name": "KS Scanner",
+  "short_name": "KS Scanner",
+  "description": "KS Scanner 行動設備序號掃描系統",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",

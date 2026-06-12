@@ -1,4 +1,4 @@
-const CACHE_NAME = 'device-scanner-v2';
+const CACHE_NAME = 'device-scanner-v3';
 const ASSETS = [
   './',
   './index.html',
