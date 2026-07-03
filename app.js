@@ -39,6 +39,15 @@ const inputBarcode = document.getElementById('input-barcode');
 const btnCloseEntryModal = document.getElementById('btn-close-entry-modal');
 const btnCancelEntry = document.getElementById('btn-cancel-entry');
 
+// Format Mismatch Modal Elements
+const modalFormatAlert = document.getElementById('modal-format-alert');
+const formatPrevBarcode = document.getElementById('format-prev-barcode');
+const formatCurrBarcode = document.getElementById('format-curr-barcode');
+const btnFormatDiscard = document.getElementById('btn-format-discard');
+const btnFormatKeep = document.getElementById('btn-format-keep');
+let formatMismatchBarcodeRef = null;
+
+
 // ==========================================================================
 // Web Audio API Audio Synthesizer (Unlocked for iOS/Android Safari & Chrome)
 // ==========================================================================
@@ -264,9 +273,38 @@ function startScanCooldown(ms = 3000) {
 }
 
 // ==========================================================================
-// Adding / Editing Logic (Duplicates Detection)
+// Adding / Editing Logic (Duplicates & Format Detection)
 // ==========================================================================
 let duplicateItemRef = null; // Store temp reference for duplicate popup
+
+// Get a format signature representation of the barcode (e.g. ABC-123 -> AAA-999)
+function getBarcodeFormatPattern(barcode) {
+    if (!barcode) return '';
+    return barcode.replace(/[0-9]/g, '9')
+                  .replace(/[A-Z]/g, 'A')
+                  .replace(/[a-z]/g, 'a');
+}
+
+// Add a valid scanned barcode to the inventory
+function addBarcodeToInventory(barcode) {
+    playScanBeep();
+    triggerVibration(100);
+    
+    // Flash screen green
+    laserOverlay.classList.add('success-flash');
+    setTimeout(() => laserOverlay.classList.remove('success-flash'), 500);
+    
+    // Insert new item
+    inventory.push({
+        barcode: barcode,
+        timestamp: new Date().toISOString()
+    });
+    
+    saveInventory();
+    
+    // Engage a 3-second cool-down after a successful scan to let them move the camera!
+    startScanCooldown(3000);
+}
 
 function handleBarcodeScan(barcode) {
     if (isProcessingScan) return;
@@ -295,23 +333,35 @@ function handleBarcodeScan(barcode) {
         modalDuplicate.classList.add('open');
     } else {
         // NEW BARCODE
-        playScanBeep();
-        triggerVibration(100);
+        // Check format mismatch with the previous item
+        if (inventory.length > 0) {
+            const lastItem = inventory[inventory.length - 1];
+            const lastFormat = getBarcodeFormatPattern(lastItem.barcode);
+            const currentFormat = getBarcodeFormatPattern(barcode);
+            
+            if (lastFormat !== currentFormat) {
+                // FORMAT MISMATCH!
+                isProcessingScan = true;
+                formatMismatchBarcodeRef = barcode;
+                
+                // Sound and Vibration feedback
+                playWarningBeep();
+                triggerVibration([100, 50, 100]);
+                
+                // Show warning screen flashes
+                laserOverlay.classList.add('warning-flash');
+                setTimeout(() => laserOverlay.classList.remove('warning-flash'), 500);
+                
+                // Populate and show format alert modal
+                formatPrevBarcode.textContent = lastItem.barcode;
+                formatCurrBarcode.textContent = barcode;
+                modalFormatAlert.classList.add('open');
+                return;
+            }
+        }
         
-        // Flash screen green
-        laserOverlay.classList.add('success-flash');
-        setTimeout(() => laserOverlay.classList.remove('success-flash'), 500);
-        
-        // Insert new item
-        inventory.push({
-            barcode: barcode,
-            timestamp: new Date().toISOString()
-        });
-        
-        saveInventory();
-        
-        // Engage a 3-second cool-down after a successful scan to let them move the camera!
-        startScanCooldown(3000);
+        // If formats match or it's the first barcode
+        addBarcodeToInventory(barcode);
     }
 }
 
@@ -326,6 +376,23 @@ function closeDuplicateModal() {
     // Engage 3-second cool-down after closing duplicate alert to prevent immediate re-scan
     startScanCooldown(3000);
 }
+
+// Format Mismatch Actions handlers
+btnFormatDiscard.addEventListener('click', () => {
+    modalFormatAlert.classList.remove('open');
+    formatMismatchBarcodeRef = null;
+    // Engage 3-second cool-down to prevent immediate re-scan
+    startScanCooldown(3000);
+});
+
+btnFormatKeep.addEventListener('click', () => {
+    modalFormatAlert.classList.remove('open');
+    if (formatMismatchBarcodeRef) {
+        addBarcodeToInventory(formatMismatchBarcodeRef);
+        formatMismatchBarcodeRef = null;
+    }
+});
+
 
 // ==========================================================================
 // Camera Scanner Setup (html5-qrcode)
@@ -556,6 +623,19 @@ entryForm.addEventListener('submit', (e) => {
         alert(`⚠️ 序號 ${barcode} 已經登錄過！請輸入其他序號。`);
         return; // Don't allow duplicates
     } else {
+        // Check format mismatch for manual entry
+        if (inventory.length > 0) {
+            const lastItem = inventory[inventory.length - 1];
+            const lastFormat = getBarcodeFormatPattern(lastItem.barcode);
+            const currentFormat = getBarcodeFormatPattern(barcode);
+            
+            if (lastFormat !== currentFormat) {
+                if (!confirm(`⚠️ 注意：您手動輸入的序號格式與前一項目不同。\n\n前一項目: ${lastItem.barcode}\n本次輸入: ${barcode}\n\n是否確定要儲存？`)) {
+                    return; // Cancel saving
+                }
+            }
+        }
+        
         // Create brand new
         inventory.push({
             barcode: barcode,

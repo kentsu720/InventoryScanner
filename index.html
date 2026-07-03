@@ -146,6 +146,42 @@
         </div>
     </div>
 
+    <!-- Modal: Format Mismatch Alert -->
+    <div id="modal-format-alert" class="modal-backdrop">
+        <div class="modal-content alert-modal animate-slide-down">
+            <div class="modal-header alert-type" style="border-bottom: 1px solid rgba(245, 158, 11, 0.2);">
+                <i class="fa-solid fa-circle-question modal-icon warning" style="color: var(--warning); text-shadow: 0 0 10px var(--warning-glow);"></i>
+                <h2>序號格式不一致！</h2>
+            </div>
+            <div class="modal-body">
+                <p class="alert-message">
+                    本次掃描的序號格式與前一個項目不同。
+                </p>
+                <div class="format-comparison-box">
+                    <div class="comparison-row">
+                        <span class="comp-label">前一項目:</span>
+                        <strong id="format-prev-barcode" class="comp-value">ABC-12345</strong>
+                    </div>
+                    <div class="comparison-row">
+                        <span class="comp-label">本次掃描:</span>
+                        <strong id="format-curr-barcode" class="comp-value highlight-warning">1234567890123</strong>
+                    </div>
+                </div>
+                <div class="duplicate-item-info">
+                    <p class="duplicate-warning-tip" style="color: var(--text-secondary);"><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> 若確認序號正確可點選「保留並儲存」，否則請重新掃描。</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; flex-direction: row; gap: 12px; justify-content: center;">
+                <button id="btn-format-discard" class="modal-btn outline" style="flex: 1; margin: 0;">
+                    <i class="fa-solid fa-trash-can"></i> 捨棄並重掃
+                </button>
+                <button id="btn-format-keep" class="modal-btn primary" style="flex: 1; margin: 0; background-color: var(--warning); border: 1px solid var(--warning); box-shadow: 0 0 12px var(--warning-glow);">
+                    <i class="fa-solid fa-circle-check"></i> 保留並儲存
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Manual Entry / Edit Form -->
     <div id="modal-entry-form" class="modal-backdrop">
         <div class="modal-content animate-scale-up">
