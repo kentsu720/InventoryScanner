@@ -89,7 +89,7 @@ function playScanBeep() {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(900, audioCtx.currentTime); // 900 Hz high pitch
         
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.55, audioCtx.currentTime); // Increased from 0.15 to 0.55 for louder volume
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
         
         osc.connect(gain);
@@ -118,7 +118,7 @@ function playWarningBeep() {
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(220, audioCtx.currentTime + delay); // 220 Hz warning pitch
             
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime + delay);
+            gain.gain.setValueAtTime(0.7, audioCtx.currentTime + delay); // Increased from 0.2 to 0.7 for louder volume
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
             
             osc.connect(gain);
@@ -630,6 +630,10 @@ entryForm.addEventListener('submit', (e) => {
             const currentFormat = getBarcodeFormatPattern(barcode);
             
             if (lastFormat !== currentFormat) {
+                // Play warning sound and trigger vibration
+                playWarningBeep();
+                triggerVibration([100, 50, 100]);
+                
                 if (!confirm(`⚠️ 注意：您手動輸入的序號格式與前一項目不同。\n\n前一項目: ${lastItem.barcode}\n本次輸入: ${barcode}\n\n是否確定要儲存？`)) {
                     return; // Cancel saving
                 }
